@@ -14,21 +14,22 @@ public class UpdatedFieldCentricMecanumTeleOp extends LinearOpMode {
 
     private updatedMech robot = new updatedMech();
 
-    private static final double MAX_INTAKE_POWER = 0.55;
+    private static final double MAX_INTAKE_POWER = 0.50;   // intake max = 0.5
     private static final double TRIGGER_DEADZONE = 0.05;
 
     private IMU imu;
 
-    private boolean gateOpen = false;
-    private boolean lastLeftStickPressed = false;
+    // For gecko toggle system
+    private boolean lastA = false;
+    private boolean lastB = false;
+    private boolean lastX = false;
+    private boolean lastY = false;
+    private double geckoPower = 0.0;
 
     @Override
     public void runOpMode() throws InterruptedException {
 
         robot.init(hardwareMap);
-
-        robot.gateServo.setPosition(0.0);
-        gateOpen = false;
 
         imu = hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(
@@ -46,13 +47,7 @@ public class UpdatedFieldCentricMecanumTeleOp extends LinearOpMode {
 
         while (opModeIsActive()) {
 
-            boolean leftStickPressed = gamepad2.left_stick_button;
-            if (leftStickPressed && !lastLeftStickPressed) {
-                gateOpen = !gateOpen;
-                robot.gateServo.setPosition(gateOpen ? 1.0 : 0.0);
-            }
-            lastLeftStickPressed = leftStickPressed;
-
+            // ---------------- FIELD CENTRIC DRIVE ----------------
             double y = -gamepad1.left_stick_y;
             double x = gamepad1.left_stick_x;
             double rx = -gamepad1.right_stick_x;
@@ -78,16 +73,22 @@ public class UpdatedFieldCentricMecanumTeleOp extends LinearOpMode {
             robot.frontRightMotor.setPower(fr);
             robot.backRightMotor.setPower(br);
 
-            double geckoPower = 0.0;
+            // ---------------- GECKOS (TOGGLE BUTTONS) ----------------
+            if (gamepad2.a && !lastA) geckoPower = 0.42;
+            if (gamepad2.b && !lastB) geckoPower = 0.44;
+            if (gamepad2.y && !lastY) geckoPower = 0.53;
+            if (gamepad2.x && !lastX) geckoPower = -0.50;
+            if (gamepad2.right_stick_button) geckoPower = 0;
 
-            if (gamepad2.a) geckoPower = 0.44;    // normal forward
-            else if (gamepad2.b) geckoPower = 0.46; // normal forward
-            else if (gamepad2.y) geckoPower = 0.55; // normal forward
-            else if (gamepad2.x) geckoPower = -0.50; // X button: backward spin
+            lastA = gamepad2.a;
+            lastB = gamepad2.b;
+            lastX = gamepad2.x;
+            lastY = gamepad2.y;
 
             robot.left_gecko.setPower(-geckoPower);
             robot.right_gecko.setPower(geckoPower);
 
+            // ---------------- INTAKE (max 0.5) ----------------
             double rt = gamepad2.right_trigger;
             double lt = gamepad2.left_trigger;
 
@@ -101,22 +102,20 @@ public class UpdatedFieldCentricMecanumTeleOp extends LinearOpMode {
                 robot.intake.setPower(0.0);
             }
 
-            // AUTO CONVEYOR + MANUAL OVERRIDE, SAME DIRECTION AS RIGHT BUMPER
-            boolean intakeActive = triggerActive;
-            double conveyorPower;
+            // ---------------- CONVEYOR (LB + RB, capped at 0.5) ----------------
+            double conveyorPower = 0;
 
             if (gamepad2.right_bumper) {
-                conveyorPower = -1; // main direction
+                conveyorPower = -0.7;   // forward
             } else if (gamepad2.left_bumper) {
-                conveyorPower = 1;  // reverse
-            } else if (intakeActive) {
-                conveyorPower = -0.5; // auto same direction as right bumper
+                conveyorPower = 0.7;    // reverse
             } else {
                 conveyorPower = 0;
             }
 
             robot.conveyer_belt.setPower(conveyorPower);
 
+            // ---------------- TELEMETRY ----------------
             telemetry.addLine("=== FIELD-CENTRIC DRIVE ===");
             telemetry.addData("Heading (deg)", "%.1f", Math.toDegrees(botHeading));
 
@@ -125,12 +124,7 @@ public class UpdatedFieldCentricMecanumTeleOp extends LinearOpMode {
             telemetry.addData("Intake Power", "%.2f", intakePower);
             telemetry.addData("Conveyor Power", "%.2f", conveyorPower);
 
-            telemetry.addLine("=== GATE SERVO ===");
-            telemetry.addData("Gate State", gateOpen ? "OPEN (1.0)" : "CLOSED (0.0)");
-            telemetry.addData("Gate Servo Position", robot.gateServo.getPosition());
-
             telemetry.update();
-
         }
 
         stopAllMotors();
@@ -145,7 +139,7 @@ public class UpdatedFieldCentricMecanumTeleOp extends LinearOpMode {
         robot.left_gecko.setPower(0);
         robot.right_gecko.setPower(0);
         robot.intake.setPower(0);
+
         robot.conveyer_belt.setPower(0);
-        robot.gateServo.setPosition(0);
     }
 }

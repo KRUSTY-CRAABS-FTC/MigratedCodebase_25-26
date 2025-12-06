@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.Mechanisms.updatedMech;
 
-@Autonomous(name = "Updated RED FRONT AUTO", group = "Auto")
+@Autonomous(name = "UPDATED RED FRONT AUTO (42in + Shooting)", group = "Auto")
 public class updatedRedFrontAuto extends LinearOpMode {
 
     private final updatedMech robot = new updatedMech();
@@ -27,61 +27,36 @@ public class updatedRedFrontAuto extends LinearOpMode {
         if (isStopRequested()) return;
 
         // ---------------------------------------------------------------------
-        // 0️⃣ Move forward 4 ft (48 inches)
+        // 1️⃣ Move forward 42 inches
         // ---------------------------------------------------------------------
-        telemetry.addLine("Moving Forward 4ft...");
+        telemetry.addLine("Moving Forward 42 inches...");
         telemetry.update();
-        robot.strafe("forward", (int)(48 * updatedMech.TICKS_PER_INCH), 0.5);
+        robot.strafe("forward", (int)(42 * updatedMech.TICKS_PER_INCH), 0.5);
         waitUntilDriveComplete();
 
         // ---------------------------------------------------------------------
-        // 🔥 SHOOTING SEQUENCE — 2s Gecko, then 4s Gecko+Intake+Conveyor
+        // 🔥 Shooting Sequence
         // ---------------------------------------------------------------------
-        telemetry.addLine("Starting Shooting Sequence...");
+        telemetry.addLine("Running Shooting Sequence...");
         telemetry.update();
 
-        // --- Phase 1: Gecko wheels only (2 seconds) ---
-        robot.left_gecko.setPower(-0.45);
-        robot.right_gecko.setPower(0.45);
-        robot.intake.setPower(0);
-        robot.conveyer_belt.setPower(0);
-        sleep(2000);
-
-        // --- Phase 2: Gecko + Intake + Conveyor (4 seconds) ---
-        robot.intake.setPower(-0.25);          // negative intake
-        robot.conveyer_belt.setPower(-1.0);    // negative conveyor (same as right bumper)
-        sleep(2000);
-        robot.conveyer_belt.setPower(0);
-        sleep(1000);
-        // Gecko wheels remain spinning
-        robot.conveyer_belt.setPower(-1.0);
-        sleep(2000);
-        robot.conveyer_belt.setPower(0);
-        sleep(1000);
-        robot.conveyer_belt.setPower(-1.0);
-        sleep(2000);
-
-        // --- Stop all shooter components ---
-        robot.left_gecko.setPower(0);
-        robot.right_gecko.setPower(0);
-        robot.intake.setPower(0);
-        robot.conveyer_belt.setPower(0);
+        shootingSequence();
 
         telemetry.addLine("Shooting Complete!");
         telemetry.update();
 
         // ---------------------------------------------------------------------
-        // 1️⃣ Turn left 140 degrees
+        // 2️⃣ Turn LEFT 140°
         // ---------------------------------------------------------------------
-        telemetry.addLine("Turning Left 140°...");
+        telemetry.addLine("Turning Right 140°...");
         telemetry.update();
         robot.turn(140, 0.5);
         waitUntilDriveComplete();
 
         // ---------------------------------------------------------------------
-        // 2️⃣ Move forward 2 ft (24 inches)
+        // 3️⃣ Move forward 24 inches (2 ft)
         // ---------------------------------------------------------------------
-        telemetry.addLine("Moving Forward 2ft...");
+        telemetry.addLine("Moving Forward 24 inches...");
         telemetry.update();
         robot.strafe("forward", (int)(24 * updatedMech.TICKS_PER_INCH), 0.5);
         waitUntilDriveComplete();
@@ -96,9 +71,51 @@ public class updatedRedFrontAuto extends LinearOpMode {
     }
 
     // ------------------------------------------------------------
+    // 🔥 FULL SHOOTING FUNCTION
+    // ------------------------------------------------------------
+    private void shootingSequence() {
+
+        // --------------------------------------------------------
+        // Phase 1: Conveyor + both geckos for 1.5 seconds
+        // --------------------------------------------------------
+        robot.conveyer_belt.setPower(-0.7);   // same direction as TeleOp (right bumper)
+        robot.left_gecko.setPower(-0.4);
+        robot.right_gecko.setPower(0.4);
+
+        sleep(1500);
+
+        // --------------------------------------------------------
+        // Phase 2: Intake ON for 0.25 seconds
+        // --------------------------------------------------------
+        robot.intake.setPower(-0.6);
+        sleep(100);
+
+        // Intake OFF briefly
+        robot.intake.setPower(0);
+        sleep(1000);
+        // --------------------------------------------------------
+        // Phase 3: Intake ON again for 3 seconds
+        // --------------------------------------------------------
+        robot.intake.setPower(-0.6);
+        sleep(500);
+
+        robot.intake.setPower(0);
+        sleep(1000);
+
+        robot.intake.setPower(-0.6);
+        sleep(2000);
+        // --------------------------------------------------------
+        // STOP ALL SHOOTER MECHANISMS
+        // --------------------------------------------------------
+        robot.conveyer_belt.setPower(0);
+        robot.left_gecko.setPower(0);
+        robot.right_gecko.setPower(0);
+        robot.intake.setPower(0);
+    }
+
+    // ------------------------------------------------------------
     // 🧩 HELPER FUNCTIONS
     // ------------------------------------------------------------
-
     private void waitUntilDriveComplete() {
         while (opModeIsActive() && robot.isDriveBusy()) {
             telemetry.addData("FL Encoder", robot.frontLeftMotor.getCurrentPosition());
@@ -109,12 +126,22 @@ public class updatedRedFrontAuto extends LinearOpMode {
             idle();
         }
         robot.stopDrive();
-        sleep(250);
+        sleep(200);
     }
 
     private void resetAllMechanisms() {
+        // Reset drivetrain
         robot.resetDriveEncoders();
         robot.setDriveRunMode(DcMotor.RunMode.RUN_USING_ENCODER);
         robot.stopDrive();
+
+        // Stop attachments (for safety)
+        if (robot.left_gecko != null) robot.left_gecko.setPower(0);
+        if (robot.right_gecko != null) robot.right_gecko.setPower(0);
+        if (robot.intake != null) robot.intake.setPower(0);
+        if (robot.conveyer_belt != null) robot.conveyer_belt.setPower(0);
+
+        // Reset servo
+        if (robot.gateServo != null) robot.gateServo.setPosition(0.0);
     }
 }
