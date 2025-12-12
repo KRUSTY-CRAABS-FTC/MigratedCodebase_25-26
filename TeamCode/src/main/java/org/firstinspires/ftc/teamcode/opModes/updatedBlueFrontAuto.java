@@ -96,13 +96,13 @@ public class updatedBlueFrontAuto extends LinearOpMode {
         // --------------------------------------------------------
         // Phase 3: Intake ON again for 3 seconds
         // --------------------------------------------------------
-        robot.intake.setPower(-0.6);
-        sleep(500);
+        robot.intake.setPower(-0.75);
+        sleep(250);
 
         robot.intake.setPower(0);
         sleep(1000);
 
-        robot.intake.setPower(-0.6);
+        robot.intake.setPower(-0.55);
         sleep(2000);
         // --------------------------------------------------------
         // STOP ALL SHOOTER MECHANISMS
